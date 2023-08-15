@@ -35,3 +35,27 @@ pub async fn post_new_sample_db(pool: &PgPool, new_sample: CreateSample) -> Http
             .json(json!({"status": "error","message": format!("{:?}", e)})),
     };
 }
+
+pub async fn get_all_samples_db(pool: &PgPool) -> HttpResponse {
+    let query_result = sqlx::query_as!(
+        Sample,
+        "SELECT *
+        FROM samples",
+    )
+        .fetch_all(pool)
+        .await;
+
+    return match query_result {
+        Ok(sample) => {
+            let study_response = json!({"status": "success","data": serde_json::json!({
+                "sample": &sample
+            })});
+
+            HttpResponse::Ok().json(study_response)
+        }
+        Err(sqlx::Error::RowNotFound) => HttpResponse::NotFound()
+            .json(json!({"status": "fail","message": format!("No samples found")})),
+        Err(e) => HttpResponse::InternalServerError()
+            .json(json!({"status": "error","message": format!("{:?}", e)})),
+    };
+}
